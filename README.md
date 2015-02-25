@@ -18,7 +18,7 @@ This is a HipChat-specific version of the more general [instructions in the Hubo
 
 1. Install `hubot` from npm, if you don't already have it. Note the explicit version reference. The version # of hubot-hipchat is kept in line with hubot. If your hubot's version is greater than hubot-hipchat's, that means it hasn't been tested and may not work!
 
-        % npm install --global coffee-script hubot@v2.6.4
+        % npm install --global coffee-script hubot@v2.7.5
 
 1. Create a new `hubot` if necessary:
 
@@ -50,8 +50,7 @@ This is a HipChat-specific version of the more general [instructions in the Hubo
 
 1. Create a new Heroku application and (optionally) rename it:
 
-        % heroku create
-        % heroku rename our-company-hubot
+        % heroku create our-company-hubot
 
 1. Add [Redis To Go](http://devcenter.heroku.com/articles/redistogo) to your Heroku app:
 
@@ -61,7 +60,7 @@ This is a HipChat-specific version of the more general [instructions in the Hubo
 
       You will need to set a configuration variable if you are hosting on the free Heroku plan.
 
-        % heroku config:add HEROKU_URL=http://soothing-mists-4567.herokuapp.com
+        % heroku config:add HEROKU_URL=http://our-company-hubot.herokuapp.com
 
       Where the URL is your Heroku app's URL (shown after running `heroku create`, or `heroku rename`).
 
@@ -74,6 +73,7 @@ This is a HipChat-specific version of the more general [instructions in the Hubo
         % heroku config:add HUBOT_HIPCHAT_PASSWORD="..."
 
       If using HipChat Server Beta, you need to set xmppDomain to btf.hipchat.com.
+
         % heroku config:add HUBOT_HIPCHAT_XMPP_DOMAIN="btf.hipchat.com"
 
 1. Deploy and start the bot:
@@ -93,6 +93,12 @@ This is a HipChat-specific version of the more general [instructions in the Hubo
 
 Bonus: Add a notification hook to Heroku so a notification is sent to a room whenever the bot is updated: https://www.hipchat.com/help/page/heroku-integration
 
+## Scripting Gotchas
+`robot.messageRoom` syntax is as follows
+```
+robot.messageRoom("1234_room@conf.hipchat.com", "message");
+```
+
 ## Adapter configuration
 
 This adapter uses the following environment variables:
@@ -109,21 +115,29 @@ This is the password for your bot's HipChat account.
 
 Optional. This is a comma separated list of room JIDs that you want your bot to join. You can leave this blank or set it to "All" to have your bot join every room. Room JIDs look like "123_development@conf.hipchat.com" and can be found in the [XMPP/Jabber account settings](https://www.hipchat.com/account/xmpp) - just add "@conf.hipchat.com" to the end of the room's "XMPP/Jabber Name".
 
+### HUBOT\_HIPCHAT\_ROOMS\_BLACKLIST
+
+Optional. This is a comma separated list of room JIDs that should not be joined.
+
+### HUBOT\_HIPCHAT\_JOIN\_ROOMS\_ON\_INVITE
+
+Optional. Setting to `false` will prevent the HipChat adapter from auto-joining rooms when invited.
+
 ### HUBOT\_HIPCHAT\_HOST
 
 Optional. Use to force the host to open the XMPP connection to.
 
-### HUBOT\_HIPCHAT\_JOIN\_ROOMS\_ON\_INVITE
+### HUBOT\_HIPCHAT\_XMPP\_DOMAIN
 
-Optional.  Setting to `false` will prevent the HipChat adapter from auto-joining rooms when invited.
+Optional. Set to btf.hipchat.com if using HipChat Server Beta.
 
 ### HUBOT\_LOG\_LEVEL
 
 Optional. Set to `debug` to enable detailed debug logging.
 
-### HUBOT\_HIPCHAT\_XMPP\_DOMAIN
+### HUBOT\_HIPCHAT\_RECONNECT
 
-Optional. Set to btf.hipchat.com if using HipChat Server Beta.
+Optional. Seting to `false` will prevent the HipChat adapter from auto-reconnecting if it detects a server error or disconnection.
 
 ## Running locally
 

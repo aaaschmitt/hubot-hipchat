@@ -86,6 +86,8 @@ module.exports = class Connector extends EventEmitter
     @jabber.on "error", bind(onStreamError, @)
     @jabber.on "online", bind(onOnline, @)
     @jabber.on "stanza", bind(onStanza, @)
+    @jabber.on "offline", bind(onOffline, @)
+    @jabber.on "close", bind(onClose, @)
 
     # debug network traffic
     do =>
@@ -99,6 +101,7 @@ module.exports = class Connector extends EventEmitter
   # Disconnect the connector from HipChat, remove the anti-idle and emit the
   # `disconnect` event.
   disconnect: =>
+    @logger.debug 'Disconnecting here'
     if @keepalive
       clearInterval @keepalive
       delete @keepalive
@@ -143,7 +146,6 @@ module.exports = class Connector extends EventEmitter
           topic: getText(x, "topic")
           privacy: getText(x, "privacy")
           owner: getText(x, "owner")
-          num_participants: getInt(x, "num_participants")
           guest_url: getText(x, "guest_url")
           is_archived: !!getChild(x, "is_archived")
       callback err, (rooms or []), stanza
@@ -226,7 +228,12 @@ module.exports = class Connector extends EventEmitter
         type: "chat"
         from: @jid
       packet.c "inactive", xmlns: "http://jabber/protocol/chatstates"
-
+    # we should make sure that the message is properly escaped
+    # based on http://unix.stackexchange.com/questions/111899/how-to-strip-color-codes-out-of-stdout-and-pipe-to-file-and-stdout
+    message = message.replace(/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]/g, "")  # remove bash color codes
+    message = message.replace(/&/g, "&amp;")                                  # Replacing &
+    @logger.debug 'building message'
+    @logger.debug message
     packet.c("body").t(message)
     @jabber.send packet
 
@@ -479,6 +486,14 @@ onStanza = (stanza) ->
       @emit "leave", from, room, name
     else if type is "available" and entity.attrs.role is "participant"
       @emit "enter", from, room, name
+
+onOffline = ->
+  @logger.info 'Connection went offline'
+  @disconnect()
+
+onClose = ->
+  @logger.info 'Connection was closed'
+  @disconnect()
 
 usersFromStanza = (stanza) ->
   # Parse response into objects
