@@ -23,7 +23,8 @@
   "license": "MIT",
   "main": "./src/hipchat",
   "dependencies": {
-    "node-xmpp": "latest",
+    "node-xmpp-client": "^1.0.0-alpha19",
+    "node-xmpp-core": "^1.0.0-alpha13",
     "underscore": "~1.4.4",
     "rsvp": "~1.2.0"
   }
