@@ -24,8 +24,6 @@
 fs = require "fs"
 {bind, isString, isRegExp} = require "underscore"
 xmpp = require 'node-xmpp-client'
-xmpp.Element = xmpp.ltx.Element
-xmpp.JID = require('node-xmpp-core').JID
 
 # Parse and cache the node package.json file when this module is loaded
 pkg = do ->
@@ -228,7 +226,6 @@ module.exports = class Connector extends EventEmitter
     # we should make sure that the message is properly escaped
     # based on http://unix.stackexchange.com/questions/111899/how-to-strip-color-codes-out-of-stdout-and-pipe-to-file-and-stdout
     message = message.replace(/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]/g, "")  # remove bash color codes
-    message = message.replace(/&/g, "&amp;")                                  # Replacing &
     @logger.debug 'building message'
     @logger.debug message
     packet.c("body").t(message)
@@ -336,6 +333,11 @@ module.exports = class Connector extends EventEmitter
   # - `callback`: Function to be triggered: `function (fromJid, message)`
   onPrivateMessage: onMessageFor "privateMessage"
 
+  # Emitted whenever the connector receives a topic change in a room
+  #
+  # - `callback`: Function to be triggered: `function ()`
+  onTopic: (callback) -> @on "topic", callback
+
   onEnter: (callback) -> @on "enter", callback
 
   onLeave: (callback) -> @on "leave", callback
@@ -419,21 +421,33 @@ onStanza = (stanza) ->
 
   if stanza.is "message"
     if stanza.attrs.type is "groupchat"
-      body = stanza.getChildText "body"
-      return if not body
-      # Ignore chat history
+
       return if stanza.getChild "delay"
       fromJid = new xmpp.JID stanza.attrs.from
       fromChannel = fromJid.bare().toString()
       fromNick = fromJid.resource
       # Ignore our own messages
       return if fromNick is @name
-      @emit "message", fromChannel, fromNick, body
+      # Look for body msg
+      body = stanza.getChildText "body"
+      # look for Subject: http://xmpp.org/extensions/xep-0045.html#subject-mod
+      subject = stanza.getChildText "subject"
+      if body
+        # message stanza
+        @emit "message", fromChannel, fromNick, body
+      else if subject
+        # subject stanza
+        @emit "topic", fromChannel, fromNick, subject
+      else
+        # Skip parsing other types and return
+        return
 
     else if stanza.attrs.type is "chat"
       # Message without body is probably a typing notification
       body = stanza.getChildText "body"
       return if not body
+      # Ignore chat history
+      return if stanza.getChild "delay"
       fromJid = new xmpp.JID stanza.attrs.from
       @emit "privateMessage", fromJid.bare().toString(), body
 
@@ -499,6 +513,8 @@ usersFromStanza = (stanza) ->
     name: el.attrs.name
     # Name used to @mention this user
     mention_name: el.attrs.mention_name
+    # Email address
+    email_address: el.attrs.email
 
 # DOM helpers
 
